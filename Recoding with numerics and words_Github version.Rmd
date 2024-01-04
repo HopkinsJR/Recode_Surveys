@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+Load libraries and spreadsheet
+
+
+NOTE: make a duplicate of the excel sheet and make it into a csv
+
+change name and path of spreadsheet in read_csv command
+```{r}
+library(dplyr)
+library(openxlsx)
+spreadsheet<- read_csv("Path_to_csv")
+
+```
+Recode Guidelines:
+RAW role code	RAW role	RECODE role code	RECODE role
+8	Teacher	1	Teacher
+9	SPED Teacher	1	Teacher
+13	School-Based Law Enforcement	2	School-based law enforcement
+14	Security	2	School-based law enforcement
+5	Mental Health or Behavior Coordinator	3	Student Support and Health
+10	Nurse	3	Student Support and Health
+11	Social Worker	3	Student Support and Health
+12	Counselor	3	Student Support and Health
+1	Superintendent	4	Leadership
+2	Assistant Superintendent	4	Leadership
+6	Principal	4	Leadership
+7	Assistant Principal	4	Leadership
+3	Safety & Security Director	5	Safety and Security
+4	Emergency Management Coordinator	5	Safety and Security
+15*	Other district role*	6	Other
+16*	Other campus role*	6	Other
+15**	Other district/campus role	7	Administration
+16**	Other district/campus role	7	Administration
+			
+15* Other district role – Review role text and categorize accordingly	*Librarian, Paraprofessionals, and Interventionist recoded as Teacher (1)
+16* Other campus role – Review role text and categorize accordingly		
+			
+15**		**Higher level positions that are not SI, Asst SI, Principal, or Asst Principal. 
+16**		**Higher level positions that are not SI, Asst SI, Principal, or Asst Principal. 
+
+
+```{r}
+spreadsheet <- spreadsheet %>%
+  mutate(
+    `Current Role` = case_when(
+      `Current Role` %in% c(8, 9) ~ 1, # 8 and 9 recode as 1
+      `Current Role` %in% c(13, 14) ~ 2, #13 and 14 recode as 2, etc
+      `Current Role` %in% c(5, 10, 11, 12) ~ 3,
+      `Current Role` %in% c(1, 2, 6, 7) ~ 4,
+      `Current Role` %in% c(3, 4) ~ 5,
+      `Current Role` == 16 & grepl("intervention", `Other Camp Role`, ignore.case = TRUE) ~ 1, # if column contains number 16 and other column contains the word intervention, ignoring case, replace with 1
+      `Current Role` == 15 & grepl("intervention", `Other Dist Role`, ignore.case = TRUE) ~ 1,
+      `Current Role` == 16 & grepl("behavior", `Other Camp Role`, ignore.case = TRUE) ~ 1,
+      `Current Role` == 15 & grepl("behavior", `Other Dist Role`, ignore.case = TRUE) ~ 1,
+      `Current Role` == 16 & grepl("psycholog", `Other Camp Role`, ignore.case = TRUE) ~ 3,
+      `Current Role` == 15 & grepl("psycholog", `Other Dist Role`, ignore.case = TRUE) ~ 3,
+      `Current Role` == 16 & grepl("LSSP", `Other Camp Role`, ignore.case = TRUE) ~ 3,
+      `Current Role` == 15 & grepl("LSSP", `Other Dist Role`, ignore.case = TRUE) ~ 3,
+      `Current Role` == 16 & grepl("director", `Other Camp Role`, ignore.case = TRUE) ~ 7,
+      `Current Role` == 15 & grepl("director", `Other Dist Role`, ignore.case = TRUE) ~ 7,
+      `Current Role` == 16 & grepl("librarian", `Other Camp Role`, ignore.case = TRUE) ~ 1,
+      `Current Role` == 15 & grepl("librarian", `Other Dist Role`, ignore.case = TRUE) ~ 1,
+      `Current Role` == 16 & grepl("paraprof", `Other Camp Role`, ignore.case = TRUE) ~ 1,
+      `Current Role` == 15 & grepl("paraprof", `Other Dist Role`, ignore.case = TRUE) ~ 1,
+      `Current Role` == 16 & grepl("principal", `Other Camp Role`, ignore.case = TRUE) ~ 7,
+      `Current Role` == 15 & grepl("principal", `Other Dist Role`, ignore.case = TRUE) ~ 7,
+      TRUE ~ `Current Role` # if something is not mentioned, still keep it
+    )
+  )
+
+spreadsheet # look at spreadsheet
+
+```
+
+Export as an xlsx, whatever the end of the path is will be its new name
+```{r}
+write.xlsx(spreadsheet, "path_to_newly_saved_xlsx")
+```
+
+
